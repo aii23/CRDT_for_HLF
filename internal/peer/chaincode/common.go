@@ -181,6 +181,31 @@ func chaincodeInvokeOrQuery(cmd *cobra.Command, invoke bool, cf *ChaincodeCmdFac
 	return nil
 }
 
+func getChaincodeProposalResp(cmd *cobra.Command, invoke bool, cf *ChaincodeCmdFactory) (*pb.ProposalResponse, error) {
+	spec, err := getChaincodeSpec(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	// call with empty txid to ensure production code generates a txid.
+	// otherwise, tests can explicitly set their own txid
+	txID := ""
+
+	proposalResp, err := ChaincodeInvokeOrQuery(
+		spec,
+		channelID,
+		txID,
+		invoke,
+		cf.Signer,
+		cf.Certificate,
+		cf.EndorserClients,
+		cf.DeliverClients,
+		cf.BroadcastClient,
+	)
+
+	return proposalResp, err
+}
+
 type endorsementPolicy struct {
 	ChannelConfigPolicy string `json:"channelConfigPolicy,omitempty"`
 	SignaturePolicy     string `json:"signaturePolicy,omitempty"`
