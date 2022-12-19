@@ -377,6 +377,7 @@ func unmarshalRWSet(b []byte) ChaincodeKVRWSet {
 	kvWrites := make([]KVWrite, len(kvrwset.Writes))
 	rangeQueryInfos := make([]RangeQueryInfo, len(kvrwset.RangeQueriesInfo))
 	kvMetadataWrite := make([]KVMetadataWrite, len(kvrwset.MetadataWrites))
+	crdtPayload := make([]CRDTPayload, len(kvrwset.CrdtPayload))
 
 	for i, v := range kvrwset.Reads {
 		kvReads[i] = KVRead{
@@ -411,11 +412,18 @@ func unmarshalRWSet(b []byte) ChaincodeKVRWSet {
 		}
 	}
 
+	for i, v := range kvrwset.CrdtPayload {
+		crdtPayload[i] = CRDTPayload{
+			data: v.Data,
+		}
+	}
+
 	return ChaincodeKVRWSet{
 		Reads:            kvReads,
 		RangeQueriesInfo: rangeQueryInfos,
 		Writes:           kvWrites,
 		MetadataWrites:   kvMetadataWrite,
+		CRDTPayloads:     crdtPayload,
 	}
 }
 

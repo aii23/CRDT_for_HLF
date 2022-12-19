@@ -125,6 +125,7 @@ type ChaincodeKVRWSet struct {
 	RangeQueriesInfo []RangeQueryInfo  `json:"range_queries_info"`
 	Writes           []KVWrite         `json:"writes"`
 	MetadataWrites   []KVMetadataWrite `json:"metadata_writes"`
+	CRDTPayloads     []CRDTPayload     `json:"crdt_payload"`
 }
 
 type KVRead struct {
@@ -169,4 +170,8 @@ type SimplyfiedTransaction struct {
 type RWSet struct {
 	Reads  []KVRead  `json:"reads"`
 	Writes []KVWrite `json:"writes"`
+}
+
+type CRDTPayload struct {
+	data []byte `json:"data"`
 }
