@@ -21,7 +21,7 @@ type CRDT1 struct{}
 func (t *CRDT1) Init(stub shim.ChaincodeStubInterface) pb.Response {
 	fmt.Println("Init invoked")
 	_, args := stub.GetFunctionAndParameters()
-	var A string   // Entities
+	var A string // Entities
 	var Aval int // Asset holdings
 	var err error
 
@@ -35,6 +35,8 @@ func (t *CRDT1) Init(stub shim.ChaincodeStubInterface) pb.Response {
 	if err != nil {
 		return shim.Error("Expecting integer value for asset holding")
 	}
+
+	// stub.PutSomeCRDT()
 
 	// Write the state to the ledger
 	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
@@ -47,6 +49,13 @@ func (t *CRDT1) Init(stub shim.ChaincodeStubInterface) pb.Response {
 }
 
 func (t *CRDT1) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
+
+	err := stub.PutSomeCRDT([]byte("Fuck Yeah"))
+
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
 	fmt.Println("ex02 Invoke")
 	if os.Getenv("DEVMODE_ENABLED") != "" {
 		fmt.Println("invoking in devmode")
@@ -56,8 +65,8 @@ func (t *CRDT1) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	case "invoke":
 		// Make payment of X units from A to B
 		return t.invoke(stub, args)
-    case "query":
-        return t.query(stub, args)
+	case "query":
+		return t.query(stub, args)
 	default:
 		return shim.Error(`Invalid invoke function name. Expecting invoke`)
 	}
@@ -65,7 +74,7 @@ func (t *CRDT1) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 
 // Transaction makes payment of X units from A to B
 func (t *CRDT1) invoke(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	var A  string  // Entities
+	var A string // Entities
 	var Aval int // Asset holdings
 	var err error
 
@@ -85,6 +94,8 @@ func (t *CRDT1) invoke(stub shim.ChaincodeStubInterface, args []string) pb.Respo
 	if err != nil {
 		return shim.Error(err.Error())
 	}
+
+	// stub.PutSomeCRDT()
 
 	return shim.Success(nil)
 }

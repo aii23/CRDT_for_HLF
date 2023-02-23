@@ -306,6 +306,9 @@ type TxSimulator interface {
 	QueryExecutor
 	// SetState sets the given value for the given namespace and key. For a chaincode, the namespace corresponds to the chaincodeId
 	SetState(namespace string, key string, value []byte) error
+	// Temp
+	SetSomeCRDT(ns string, value []byte) error
+
 	// DeleteState deletes the given namespace and key
 	DeleteState(namespace string, key string) error
 	// SetMultipleKeys sets the values for multiple keys in a single call

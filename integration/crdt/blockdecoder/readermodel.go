@@ -173,5 +173,5 @@ type RWSet struct {
 }
 
 type CRDTPayload struct {
-	data []byte `json:"data"`
+	Data []byte `json:"data"`
 }

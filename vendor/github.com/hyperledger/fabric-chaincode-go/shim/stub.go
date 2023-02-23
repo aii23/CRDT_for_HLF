@@ -192,6 +192,10 @@ func (s *ChaincodeStub) PutState(key string, value []byte) error {
 	return s.handler.handlePutState(collection, key, value, s.ChannelID, s.TxID)
 }
 
+func (s *ChaincodeStub) PutSomeCRDT(value []byte) error {
+	return s.handler.handlePutSomeCRDT(s.ChannelID, value, s.TxID)
+}
+
 func (s *ChaincodeStub) createStateQueryIterator(response *pb.QueryResponse) *StateQueryIterator {
 	return &StateQueryIterator{
 		CommonIterator: &CommonIterator{
@@ -504,12 +508,7 @@ func validateSimpleKeys(simpleKeys ...string) error {
 	return nil
 }
 
-//GetStateByPartialCompositeKey function can be invoked by a chaincode to query the
-//state based on a given partial composite key. This function returns an
-//iterator which can be used to iterate over all composite keys whose prefix
-//matches the given partial composite key. This function should be used only for
-//a partial composite key. For a full composite key, an iter with empty response
-//would be returned.
+//GetStateByPartialCompositeKey documentation can be found in interfaces.go
 func (s *ChaincodeStub) GetStateByPartialCompositeKey(objectType string, attributes []string) (StateQueryIteratorInterface, error) {
 	collection := ""
 	startKey, endKey, err := s.createRangeKeysForPartialCompositeKey(objectType, attributes)

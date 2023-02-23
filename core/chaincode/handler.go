@@ -179,11 +179,14 @@ func (h *Handler) handleMessageCreatedState(msg *pb.ChaincodeMessage) error {
 }
 
 func (h *Handler) handleMessageReadyState(msg *pb.ChaincodeMessage) error {
+	// return fmt.Errorf("FUCK YEAH")
+
 	switch msg.Type {
 	case pb.ChaincodeMessage_COMPLETED, pb.ChaincodeMessage_ERROR:
 		h.Notify(msg)
 
 	case pb.ChaincodeMessage_PUT_STATE:
+		// return fmt.Errorf("FUCK YEAH")
 		go h.HandleTransaction(msg, h.HandlePutState)
 	case pb.ChaincodeMessage_DEL_STATE:
 		go h.HandleTransaction(msg, h.HandleDelState)
@@ -209,6 +212,9 @@ func (h *Handler) handleMessageReadyState(msg *pb.ChaincodeMessage) error {
 		go h.HandleTransaction(msg, h.HandlePutStateMetadata)
 	case pb.ChaincodeMessage_PURGE_PRIVATE_DATA:
 		go h.HandleTransaction(msg, h.HandlePurgePrivateData)
+	case pb.ChaincodeMessage_PUT_SOME_CRDT:
+		go h.HandleTransaction(msg, h.HandlePutSomeCRDT)
+		// fmt.Println("FUCK YEAH")
 	default:
 		return fmt.Errorf("[%s] Fabric side handler cannot handle message (%s) while in ready state", msg.Txid, msg.Type)
 	}
@@ -1026,6 +1032,53 @@ func (h *Handler) HandlePutState(msg *pb.ChaincodeMessage, txContext *Transactio
 	}
 
 	return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
+}
+
+func (h *Handler) HandlePutSomeCRDT(msg *pb.ChaincodeMessage, txContext *TransactionContext) (*pb.ChaincodeMessage, error) {
+
+	putCRDT := &pb.PutSomeCRDT{}
+
+	err := proto.Unmarshal(msg.Payload, putCRDT)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshal failed")
+	}
+
+	namespaceID := txContext.NamespaceID
+
+	err = txContext.TXSimulator.SetSomeCRDT(namespaceID, putCRDT.Value)
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
+
+	// #TODO do it
+	// putState := &pb.PutState{}
+	// err := proto.Unmarshal(msg.Payload, putState)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "unmarshal failed")
+	// }
+
+	// namespaceID := txContext.NamespaceID
+	// collection := putState.Collection
+	// if isCollectionSet(collection) {
+	// 	if txContext.IsInitTransaction {
+	// 		return nil, errors.New("private data APIs are not allowed in chaincode Init()")
+	// 	}
+	// 	if err := errorIfCreatorHasNoWritePermission(namespaceID, collection, txContext); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	err = txContext.TXSimulator.SetPrivateData(namespaceID, collection, putState.Key, putState.Value)
+	// } else {
+	// 	err = txContext.TXSimulator.SetState(namespaceID, putState.Key, putState.Value)
+	// }
+	// if err != nil {
+	// 	return nil, errors.WithStack(err)
+	// }
+
+	// return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
 }
 
 func (h *Handler) HandlePutStateMetadata(msg *pb.ChaincodeMessage, txContext *TransactionContext) (*pb.ChaincodeMessage, error) {

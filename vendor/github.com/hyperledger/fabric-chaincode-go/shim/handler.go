@@ -337,6 +337,34 @@ func (h *Handler) handlePutState(collection string, key string, value []byte, ch
 	return fmt.Errorf("[%s] incorrect chaincode message %s received. Expecting %s or %s", shorttxid(responseMsg.Txid), responseMsg.Type, pb.ChaincodeMessage_RESPONSE, pb.ChaincodeMessage_ERROR)
 }
 
+func (h *Handler) handlePutSomeCRDT(channelID string, value []byte, txid string) error {
+
+	payloadBytes := marshalOrPanic(&pb.PutSomeCRDT{Value: value})
+
+	// return fmt.Errorf("WTF")
+
+	msg := &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_PUT_SOME_CRDT, Payload: payloadBytes, Txid: txid, ChannelId: channelID}
+
+	// Execute the request and get response
+	responseMsg, err := h.callPeerWithChaincodeMsg(msg, channelID, txid)
+	if err != nil {
+		return fmt.Errorf("[%s] error sending %s: %s", msg.Txid, pb.ChaincodeMessage_PUT_SOME_CRDT, err)
+	}
+
+	if responseMsg.Type == pb.ChaincodeMessage_RESPONSE {
+		// Success response
+		return nil
+	}
+
+	if responseMsg.Type == pb.ChaincodeMessage_ERROR {
+		// Error response
+		return fmt.Errorf("%s", responseMsg.Payload[:])
+	}
+
+	// Incorrect chaincode message received
+	return fmt.Errorf("[%s] incorrect chaincode message %s received. Expecting %s or %s", shorttxid(responseMsg.Txid), responseMsg.Type, pb.ChaincodeMessage_RESPONSE, pb.ChaincodeMessage_ERROR)
+}
+
 func (h *Handler) handlePutStateMetadataEntry(collection string, key string, metakey string, metadata []byte, channelID string, txID string) error {
 	// Construct payload for PUT_STATE_METADATA
 	md := &pb.StateMetadata{Metakey: metakey, Value: metadata}

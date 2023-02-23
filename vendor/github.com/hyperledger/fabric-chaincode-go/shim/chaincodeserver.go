@@ -35,6 +35,8 @@ type ChaincodeServer struct {
 	TLSProps TLSProperties
 	// KaOpts keepalive options, sensible defaults provided if nil
 	KaOpts *keepalive.ServerParameters
+
+	pb.UnimplementedChaincodeServer
 }
 
 // Connect the bidi stream entry point called by chaincode to register with the Peer.
