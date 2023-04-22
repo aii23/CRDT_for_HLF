@@ -36,8 +36,6 @@ func (t *CRDT1) Init(stub shim.ChaincodeStubInterface) pb.Response {
 		return shim.Error("Expecting integer value for asset holding")
 	}
 
-	// stub.PutSomeCRDT()
-
 	// Write the state to the ledger
 	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
 	if err != nil {
@@ -50,7 +48,17 @@ func (t *CRDT1) Init(stub shim.ChaincodeStubInterface) pb.Response {
 
 func (t *CRDT1) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 
-	err := stub.PutSomeCRDT([]byte("Fuck Yeah"))
+	// if err != nil {
+	// 	return shim.Error(err.Error())
+	// }
+
+	err := stub.PutCRDT("IntAdd", "key", []byte("12345"))
+
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = stub.PutCRDT("IntAdd", "key", []byte("54321"))
 
 	if err != nil {
 		return shim.Error(err.Error())
@@ -94,8 +102,6 @@ func (t *CRDT1) invoke(stub shim.ChaincodeStubInterface, args []string) pb.Respo
 	if err != nil {
 		return shim.Error(err.Error())
 	}
-
-	// stub.PutSomeCRDT()
 
 	return shim.Success(nil)
 }

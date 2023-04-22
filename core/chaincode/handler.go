@@ -186,7 +186,6 @@ func (h *Handler) handleMessageReadyState(msg *pb.ChaincodeMessage) error {
 		h.Notify(msg)
 
 	case pb.ChaincodeMessage_PUT_STATE:
-		// return fmt.Errorf("FUCK YEAH")
 		go h.HandleTransaction(msg, h.HandlePutState)
 	case pb.ChaincodeMessage_DEL_STATE:
 		go h.HandleTransaction(msg, h.HandleDelState)
@@ -212,9 +211,10 @@ func (h *Handler) handleMessageReadyState(msg *pb.ChaincodeMessage) error {
 		go h.HandleTransaction(msg, h.HandlePutStateMetadata)
 	case pb.ChaincodeMessage_PURGE_PRIVATE_DATA:
 		go h.HandleTransaction(msg, h.HandlePurgePrivateData)
-	case pb.ChaincodeMessage_PUT_SOME_CRDT:
-		go h.HandleTransaction(msg, h.HandlePutSomeCRDT)
-		// fmt.Println("FUCK YEAH")
+	case pb.ChaincodeMessage_PUT_CRDT:
+		go h.HandleTransaction(msg, h.HandlePutCRDT)
+	case pb.ChaincodeMessage_GET_CRDT_STATE:
+		go h.HandleTransaction(msg, h.HandleGetCRDTState)
 	default:
 		return fmt.Errorf("[%s] Fabric side handler cannot handle message (%s) while in ready state", msg.Txid, msg.Type)
 	}
@@ -652,6 +652,35 @@ func (h *Handler) HandleGetState(msg *pb.ChaincodeMessage, txContext *Transactio
 	return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Payload: res, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
 }
 
+// Handles query to ledger to get state
+func (h *Handler) HandleGetCRDTState(msg *pb.ChaincodeMessage, txContext *TransactionContext) (*pb.ChaincodeMessage, error) {
+	getState := &pb.GetState{}
+	err := proto.Unmarshal(msg.Payload, getState)
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshal failed")
+	}
+
+	var res []byte
+	namespaceID := txContext.NamespaceID
+	collection := getState.Collection
+	chaincodeLogger.Debugf("[%s] getting state for chaincode %s, key %s, channel %s", shorttxid(msg.Txid), namespaceID, getState.Key, txContext.ChannelID)
+
+	if isCollectionSet(collection) {
+		return nil, errors.New("CRDT is not implemented for private collections")
+	} else {
+		res, err = txContext.TXSimulator.GetCRDTState(namespaceID, getState.Key)
+	}
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if res == nil {
+		chaincodeLogger.Debugf("[%s] No state associated with key: %s. Sending %s with an empty payload", shorttxid(msg.Txid), getState.Key, pb.ChaincodeMessage_RESPONSE)
+	}
+
+	// Send response msg back to chaincode. GetState will not trigger event
+	return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Payload: res, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
+}
+
 func (h *Handler) HandleGetPrivateDataHash(msg *pb.ChaincodeMessage, txContext *TransactionContext) (*pb.ChaincodeMessage, error) {
 	getState := &pb.GetState{}
 	err := proto.Unmarshal(msg.Payload, getState)
@@ -1034,9 +1063,8 @@ func (h *Handler) HandlePutState(msg *pb.ChaincodeMessage, txContext *Transactio
 	return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
 }
 
-func (h *Handler) HandlePutSomeCRDT(msg *pb.ChaincodeMessage, txContext *TransactionContext) (*pb.ChaincodeMessage, error) {
-
-	putCRDT := &pb.PutSomeCRDT{}
+func (h *Handler) HandlePutCRDT(msg *pb.ChaincodeMessage, txContext *TransactionContext) (*pb.ChaincodeMessage, error) {
+	putCRDT := &pb.PutCRDT{}
 
 	err := proto.Unmarshal(msg.Payload, putCRDT)
 
@@ -1046,39 +1074,13 @@ func (h *Handler) HandlePutSomeCRDT(msg *pb.ChaincodeMessage, txContext *Transac
 
 	namespaceID := txContext.NamespaceID
 
-	err = txContext.TXSimulator.SetSomeCRDT(namespaceID, putCRDT.Value)
+	err = txContext.TXSimulator.SetCRDT(namespaceID, putCRDT.ResolutionType, putCRDT.Key, putCRDT.Value)
 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
-
-	// #TODO do it
-	// putState := &pb.PutState{}
-	// err := proto.Unmarshal(msg.Payload, putState)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "unmarshal failed")
-	// }
-
-	// namespaceID := txContext.NamespaceID
-	// collection := putState.Collection
-	// if isCollectionSet(collection) {
-	// 	if txContext.IsInitTransaction {
-	// 		return nil, errors.New("private data APIs are not allowed in chaincode Init()")
-	// 	}
-	// 	if err := errorIfCreatorHasNoWritePermission(namespaceID, collection, txContext); err != nil {
-	// 		return nil, err
-	// 	}
-	// 	err = txContext.TXSimulator.SetPrivateData(namespaceID, collection, putState.Key, putState.Value)
-	// } else {
-	// 	err = txContext.TXSimulator.SetState(namespaceID, putState.Key, putState.Value)
-	// }
-	// if err != nil {
-	// 	return nil, errors.WithStack(err)
-	// }
-
-	// return &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_RESPONSE, Txid: msg.Txid, ChannelId: msg.ChannelId}, nil
 }
 
 func (h *Handler) HandlePutStateMetadata(msg *pb.ChaincodeMessage, txContext *TransactionContext) (*pb.ChaincodeMessage, error) {

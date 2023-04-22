@@ -46,9 +46,11 @@ var _ = Describe("EndToEnd", func() {
 	var (
 		testDir string
 		//		client    *docker.Client
-		network   *nwo.Network
-		chaincode nwo.Chaincode
-		process   ifrit.Process
+		network              *nwo.Network
+		chaincode            nwo.Chaincode
+		crdt_chaincode       nwo.Chaincode
+		erc20_crdt_chaincode nwo.Chaincode
+		process              ifrit.Process
 	)
 
 	BeforeEach(func() {
@@ -66,6 +68,32 @@ var _ = Describe("EndToEnd", func() {
 			Lang:            "binary",
 			PackageFile:     filepath.Join(testDir, "simplecc.tar.gz"),
 			Ctor:            `{"Args":["init","a","100"]}`,
+			SignaturePolicy: `AND ('Org1MSP.member','Org2MSP.member')`,
+			Sequence:        "1",
+			InitRequired:    true,
+			Label:           "my_prebuilt_chaincode",
+		}
+
+		crdt_chaincode = nwo.Chaincode{
+			Name:            "mycc",
+			Version:         "0.0",
+			Path:            components.Build("github.com/hyperledger/fabric/integration/chaincode/crdt_counter/cmd"),
+			Lang:            "binary",
+			PackageFile:     filepath.Join(testDir, "simplecc.tar.gz"),
+			Ctor:            `{"Args":["init"]}`,
+			SignaturePolicy: `AND ('Org1MSP.member','Org2MSP.member')`,
+			Sequence:        "1",
+			InitRequired:    true,
+			Label:           "my_prebuilt_chaincode",
+		}
+
+		erc20_crdt_chaincode = nwo.Chaincode{
+			Name:            "mycc",
+			Version:         "0.0",
+			Path:            components.Build("github.com/hyperledger/fabric/integration/chaincode/crdt_erc20/cmd"),
+			Lang:            "binary",
+			PackageFile:     filepath.Join(testDir, "simplecc.tar.gz"),
+			Ctor:            `{"Args":["Initialize", "Token", "T", "6"]}`, // ?
 			SignaturePolicy: `AND ('Org1MSP.member','Org2MSP.member')`,
 			Sequence:        "1",
 			InitRequired:    true,
@@ -156,6 +184,8 @@ var _ = Describe("EndToEnd", func() {
 		})
 
 		It("executes a basic etcdraft network with 2 orgs and no docker", func() {
+			// Skip("For now")
+
 			By("getting the orderer by name")
 			orderer := network.Orderer("orderer")
 
@@ -238,6 +268,7 @@ var _ = Describe("EndToEnd", func() {
 			//
 			//			fmt.Printf("%x\n", block.Data.Data[0])
 
+			/// First Run
 			RunInvoke(network, orderer, peer, "testchannel", "b", "25")
 
 			sess, err = network.PeerAdminSession(peer, fetchNewest)
@@ -247,23 +278,177 @@ var _ = Describe("EndToEnd", func() {
 
 			showBlock(outputBlock)
 
-			//            CheckInvoke(network, orderer, peer, "testchannel", "b", "25");
+			PrintQueryResponse(network, orderer, peer, "testchannel", "b")
+			// PrintQueryResponse(network, orderer, peer, "testchannel", "Standart key")
+			PrintQueryResponse(network, orderer, peer, "testchannel", "key")
 
-			//			RunQueryInvokeQuery(network, orderer, peer, "testchannel")
-			//			RunRespondWith(network, orderer, peer, "testchannel")
-			//
-			//			By("evaluating statsd metrics")
-			//			metricsWriteInterval := 5 * time.Second
-			//			CheckPeerStatsdStreamMetrics(metricsReader, 2*metricsWriteInterval)
-			//			CheckPeerStatsdMetrics("org1_peer0", metricsReader, 2*metricsWriteInterval)
-			//			CheckPeerStatsdMetrics("org2_peer0", metricsReader, 2*metricsWriteInterval)
-			//
-			//			By("checking for orderer metrics")
-			//			CheckOrdererStatsdMetrics("ordererorg_orderer", metricsReader, 2*metricsWriteInterval)
-			//
-			//			By("setting up a channel from a base profile")
-			//			additionalPeer := network.Peer("Org2", "peer0")
-			//			network.CreateChannel("baseprofilechannel", orderer, peer, additionalPeer)
+			/// Second Run
+			RunInvoke(network, orderer, peer, "testchannel", "b", "25")
+
+			sess, err = network.PeerAdminSession(peer, fetchNewest)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit(0))
+			Expect(sess.Err).To(gbytes.Say("Received block: "))
+
+			showBlock(outputBlock)
+
+			PrintQueryResponse(network, orderer, peer, "testchannel", "b")
+
+			// PrintQueryResponse(network, orderer, peer, "testchannel", "Standart key")
+			PrintQueryResponse(network, orderer, peer, "testchannel", "key")
+		})
+
+		It("Crdt counter check", func() {
+			// Skip("For now")
+			By("getting the orderer by name")
+			orderer := network.Orderer("orderer")
+
+			By("setting up the channel")
+			network.CreateAndJoinChannel(orderer, "testchannel")
+			nwo.EnableCapabilities(network, "testchannel", "Application", "V2_5", orderer, network.Peer("Org1", "peer0"), network.Peer("Org2", "peer0"))
+
+			By("listing channels with osnadmin")
+			tlsdir := network.OrdererLocalTLSDir(orderer)
+			sess, err := network.Osnadmin(commands.ChannelList{
+				OrdererAddress: network.OrdererAddress(orderer, nwo.AdminPort),
+				CAFile:         filepath.Join(tlsdir, "ca.crt"),
+				ClientCert:     filepath.Join(tlsdir, "server.crt"),
+				ClientKey:      filepath.Join(tlsdir, "server.key"),
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess).Should(gexec.Exit(0))
+			var channelList channelparticipation.ChannelList
+			err = json.Unmarshal(sess.Out.Contents(), &channelList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(channelList).To(Equal(channelparticipation.ChannelList{
+				SystemChannel: &channelparticipation.ChannelInfoShort{
+					Name: "systemchannel",
+					URL:  "/participation/v1/channels/systemchannel",
+				},
+				Channels: []channelparticipation.ChannelInfoShort{{
+					Name: "testchannel",
+					URL:  "/participation/v1/channels/testchannel",
+				}},
+			}))
+
+			By("deploying the chaincode")
+			nwo.DeployChaincode(network, "testchannel", orderer, crdt_chaincode)
+
+			By("ensuring external cc run artifacts exist after deploying")
+			contents, err := ioutil.ReadFile(runArtifactsFilePath)
+			Expect(err).NotTo(HaveOccurred())
+			scanner := bufio.NewScanner(bytes.NewBuffer(contents))
+			for scanner.Scan() {
+				Expect(scanner.Text()).To(BeADirectory())
+			}
+
+			By("getting the client peer by name")
+			peer := network.Peer("Org1", "peer0")
+
+			outputBlock := filepath.Join(testDir, "newest_block.pb")
+			fetchNewest := commands.ChannelFetch{
+				ChannelID:  "testchannel",
+				Block:      "newest",
+				OutputFile: outputBlock,
+			}
+
+			sess, err = network.PeerAdminSession(peer, fetchNewest)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit(0))
+			Expect(sess.Err).To(gbytes.Say("Received block: "))
+
+			RunInvoke2(network, orderer, peer, "testchannel", "IntAdd", "a", "33")
+			RunInvoke2(network, orderer, peer, "testchannel", "IntAdd", "a", "55")
+
+			RunInvoke2(network, orderer, peer, "testchannel", "StringConcat", "b", "Hello")
+			RunInvoke2(network, orderer, peer, "testchannel", "StringConcat", "b", " ")
+			RunInvoke2(network, orderer, peer, "testchannel", "StringConcat", "b", "world")
+			RunInvoke2(network, orderer, peer, "testchannel", "StringConcat", "b", "!")
+
+			encArr1, _ := json.Marshal([]int{1, 2, 3})
+			encArr2, _ := json.Marshal([]int{4, 5, 6})
+			encArr3, _ := json.Marshal([]int{7, 8, 9})
+
+			RunInvoke2(network, orderer, peer, "testchannel", "ArrayAppend", "c", string(encArr1))
+			RunInvoke2(network, orderer, peer, "testchannel", "ArrayAppend", "c", string(encArr2))
+			RunInvoke2(network, orderer, peer, "testchannel", "ArrayAppend", "c", string(encArr3))
+
+			sess, err = network.PeerAdminSession(peer, fetchNewest)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit(0))
+			Expect(sess.Err).To(gbytes.Say("Received block: "))
+
+			showBlock(outputBlock)
+
+			PrintQueryResponse(network, orderer, peer, "testchannel", "a")
+			PrintQueryResponse(network, orderer, peer, "testchannel", "b")
+			PrintQueryResponse(network, orderer, peer, "testchannel", "c")
+		})
+
+		It("Crdt Erc20 check", func() {
+			By("getting the orderer by name")
+			orderer := network.Orderer("orderer")
+
+			By("setting up the channel")
+			network.CreateAndJoinChannel(orderer, "testchannel")
+			nwo.EnableCapabilities(network, "testchannel", "Application", "V2_5", orderer, network.Peer("Org1", "peer0"), network.Peer("Org2", "peer0"))
+
+			By("listing channels with osnadmin")
+			tlsdir := network.OrdererLocalTLSDir(orderer)
+			sess, err := network.Osnadmin(commands.ChannelList{
+				OrdererAddress: network.OrdererAddress(orderer, nwo.AdminPort),
+				CAFile:         filepath.Join(tlsdir, "ca.crt"),
+				ClientCert:     filepath.Join(tlsdir, "server.crt"),
+				ClientKey:      filepath.Join(tlsdir, "server.key"),
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess).Should(gexec.Exit(0))
+			var channelList channelparticipation.ChannelList
+			err = json.Unmarshal(sess.Out.Contents(), &channelList)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(channelList).To(Equal(channelparticipation.ChannelList{
+				SystemChannel: &channelparticipation.ChannelInfoShort{
+					Name: "systemchannel",
+					URL:  "/participation/v1/channels/systemchannel",
+				},
+				Channels: []channelparticipation.ChannelInfoShort{{
+					Name: "testchannel",
+					URL:  "/participation/v1/channels/testchannel",
+				}},
+			}))
+
+			By("deploying the chaincode")
+			nwo.DeployChaincode(network, "testchannel", orderer, erc20_crdt_chaincode)
+
+			By("ensuring external cc run artifacts exist after deploying")
+			contents, err := ioutil.ReadFile(runArtifactsFilePath)
+			Expect(err).NotTo(HaveOccurred())
+			scanner := bufio.NewScanner(bytes.NewBuffer(contents))
+			for scanner.Scan() {
+				Expect(scanner.Text()).To(BeADirectory())
+			}
+
+			By("getting the client peer by name")
+			peer := network.Peer("Org1", "peer0")
+			peer2 := network.Peer("Org2", "peer0")
+
+			outputBlock := filepath.Join(testDir, "newest_block.pb")
+			fetchNewest := commands.ChannelFetch{
+				ChannelID:  "testchannel",
+				Block:      "newest",
+				OutputFile: outputBlock,
+			}
+
+			sess, err = network.PeerAdminSession(peer, fetchNewest)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit(0))
+			Expect(sess.Err).To(gbytes.Say("Received block: "))
+
+			RunInvoke0(network, orderer, peer, "testchannel", "Mint", "10000")
+
+			RunInvoke0(network, orderer, peer, "testchannel", "Transfer", peer2.ID(), "55000")
+
+			// PrintQueryResponse(network, orderer, peer, "testchannel", peer.ID())
 		})
 	})
 })
@@ -409,12 +594,64 @@ func showBlockData(data *common.BlockData) {
 	}
 }
 
+func RunInvoke0(n *nwo.Network, orderer *nwo.Orderer, peer *nwo.Peer, channel string, params ...string) {
+	sess, err := n.PeerUserSession(peer, "User1", commands.ChaincodeInvoke{
+		ChannelID: channel,
+		Orderer:   n.OrdererAddress(orderer, nwo.ListenPort),
+		Name:      "mycc",
+		Ctor:      `{"Args":["` + strings.Join(params, `","`) + `"]}`,
+		PeerAddresses: []string{
+			n.PeerAddress(n.Peer("Org1", "peer0"), nwo.ListenPort),
+			n.PeerAddress(n.Peer("Org2", "peer0"), nwo.ListenPort),
+		},
+		WaitForEvent: true,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
+	Expect(sess.Err).To(gbytes.Say("Chaincode invoke successful. result: status:200"))
+
+	//	sess, err = n.PeerUserSession(peer, "User1", commands.ChaincodeQuery{
+	//		ChannelID: channel,
+	//		Name:      "mycc",
+	//		Ctor:      `{"Args":["query","a"]}`,
+	//	})
+	//	Expect(err).NotTo(HaveOccurred())
+	//	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
+	//	Expect(sess).To(gbytes.Say("90"))
+}
+
 func RunInvoke(n *nwo.Network, orderer *nwo.Orderer, peer *nwo.Peer, channel string, key string, value string) {
 	sess, err := n.PeerUserSession(peer, "User1", commands.ChaincodeInvoke{
 		ChannelID: channel,
 		Orderer:   n.OrdererAddress(orderer, nwo.ListenPort),
 		Name:      "mycc",
 		Ctor:      `{"Args":["invoke","` + key + `", "` + value + `"]}`,
+		PeerAddresses: []string{
+			n.PeerAddress(n.Peer("Org1", "peer0"), nwo.ListenPort),
+			n.PeerAddress(n.Peer("Org2", "peer0"), nwo.ListenPort),
+		},
+		WaitForEvent: true,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
+	Expect(sess.Err).To(gbytes.Say("Chaincode invoke successful. result: status:200"))
+
+	//	sess, err = n.PeerUserSession(peer, "User1", commands.ChaincodeQuery{
+	//		ChannelID: channel,
+	//		Name:      "mycc",
+	//		Ctor:      `{"Args":["query","a"]}`,
+	//	})
+	//	Expect(err).NotTo(HaveOccurred())
+	//	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
+	//	Expect(sess).To(gbytes.Say("90"))
+}
+
+func RunInvoke2(n *nwo.Network, orderer *nwo.Orderer, peer *nwo.Peer, channel string, mergeType string, key string, value string) {
+	sess, err := n.PeerUserSession(peer, "User1", commands.ChaincodeInvoke{
+		ChannelID: channel,
+		Orderer:   n.OrdererAddress(orderer, nwo.ListenPort),
+		Name:      "mycc",
+		Ctor:      `{"Args":["invoke","` + mergeType + `", "` + key + `", "` + value + `"]}`,
 		PeerAddresses: []string{
 			n.PeerAddress(n.Peer("Org1", "peer0"), nwo.ListenPort),
 			n.PeerAddress(n.Peer("Org2", "peer0"), nwo.ListenPort),
@@ -444,6 +681,19 @@ func CheckInvoke(n *nwo.Network, orderer *nwo.Orderer, peer *nwo.Peer, channel s
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
 	Expect(sess).To(gbytes.Say(value))
+}
+
+func PrintQueryResponse(n *nwo.Network, orderer *nwo.Orderer, peer *nwo.Peer, channel string, key string) {
+	By("querying the chaincode")
+	sess, err := n.PeerUserSession(peer, "User1", commands.ChaincodeQuery{
+		ChannelID: channel,
+		Name:      "mycc",
+		Ctor:      `{"Args":["query","` + key + `"]}`,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(sess, n.EventuallyTimeout).Should(gexec.Exit(0))
+	fmt.Println(key + " value is " + string(sess.Out.Contents()))
+	// Expect(sess).To(gbytes.Say("100"))
 }
 
 func RunQueryInvokeQuery(n *nwo.Network, orderer *nwo.Orderer, peer *nwo.Peer, channel string) {

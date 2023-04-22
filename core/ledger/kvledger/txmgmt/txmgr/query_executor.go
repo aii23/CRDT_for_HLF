@@ -64,6 +64,11 @@ func (q *queryExecutor) GetState(ns, key string) ([]byte, error) {
 	return val, err
 }
 
+func (q *queryExecutor) GetCRDTState(ns, key string) ([]byte, error) {
+	val, _, err := q.getState(ns, key)
+	return val, err
+}
+
 func (q *queryExecutor) getState(ns, key string) ([]byte, []byte, error) {
 	if err := q.checkDone(); err != nil {
 		return nil, nil, err
@@ -76,6 +81,22 @@ func (q *queryExecutor) getState(ns, key string) ([]byte, []byte, error) {
 	if q.collectReadset {
 		q.rwsetBuilder.AddToReadSet(ns, key, ver)
 	}
+	return val, metadata, nil
+}
+
+// Same as getState but do not add to readset
+func (q *queryExecutor) getCRDTState(ns, key string) ([]byte, []byte, error) {
+	if err := q.checkDone(); err != nil {
+		return nil, nil, err
+	}
+	versionedValue, err := q.txmgr.db.GetState(ns, key)
+	if err != nil {
+		return nil, nil, err
+	}
+	val, metadata, _ := decomposeVersionedValue(versionedValue)
+	// if q.collectReadset {
+	// 	q.rwsetBuilder.AddToReadSet(ns, key, ver)
+	// }
 	return val, metadata, nil
 }
 

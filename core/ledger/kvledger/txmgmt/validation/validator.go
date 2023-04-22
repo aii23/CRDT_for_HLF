@@ -99,11 +99,17 @@ func (v *validator) validateAndPrepareBatch(blk *block, doMVCCValidation bool) (
 			return nil, nil, err
 		}
 
+		committingTxHeight := version.NewHeight(blk.num, uint64(tx.indexInBlock))
+
+		if err := updates.applyCRDT(tx.rwset, committingTxHeight, v.db, tx.containsPostOrderWrites); err != nil {
+			logger.Warningf("CRDT error while processing transaction %d from block %d", tx.id, blk.num)
+			validationCode = peer.TxValidationCode_CRDT_CONFLICT
+		}
+
 		tx.validationCode = validationCode
 		if validationCode == peer.TxValidationCode_VALID {
 			logger.Debugf("Block [%d] Transaction index [%d] TxId [%s] marked as valid by state validator. ContainsPostOrderWrites [%t]", blk.num, tx.indexInBlock, tx.id, tx.containsPostOrderWrites)
 
-			committingTxHeight := version.NewHeight(blk.num, uint64(tx.indexInBlock))
 			if err := updates.applyWriteSet(tx.rwset, committingTxHeight, v.db, tx.containsPostOrderWrites); err != nil {
 				return nil, nil, err
 			}
@@ -114,6 +120,7 @@ func (v *validator) validateAndPrepareBatch(blk *block, doMVCCValidation bool) (
 				blk.num, tx.indexInBlock, tx.id, validationCode.String())
 		}
 	}
+
 	return updates, purgeTracker.getUpdates(), nil
 }
 

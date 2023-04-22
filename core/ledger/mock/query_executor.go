@@ -58,6 +58,20 @@ type QueryExecutor struct {
 		result1 ledger.QueryResultsIterator
 		result2 error
 	}
+	GetCRDTStateStub        func(string, string) ([]byte, error)
+	getCRDTStateMutex       sync.RWMutex
+	getCRDTStateArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	getCRDTStateReturns struct {
+		result1 []byte
+		result2 error
+	}
+	getCRDTStateReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 error
+	}
 	GetPrivateDataStub        func(string, string, string) ([]byte, error)
 	getPrivateDataMutex       sync.RWMutex
 	getPrivateDataArgsForCall []struct {
@@ -444,6 +458,71 @@ func (fake *QueryExecutor) ExecuteQueryWithPaginationReturnsOnCall(i int, result
 	}
 	fake.executeQueryWithPaginationReturnsOnCall[i] = struct {
 		result1 ledger.QueryResultsIterator
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *QueryExecutor) GetCRDTState(arg1 string, arg2 string) ([]byte, error) {
+	fake.getCRDTStateMutex.Lock()
+	ret, specificReturn := fake.getCRDTStateReturnsOnCall[len(fake.getCRDTStateArgsForCall)]
+	fake.getCRDTStateArgsForCall = append(fake.getCRDTStateArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.GetCRDTStateStub
+	fakeReturns := fake.getCRDTStateReturns
+	fake.recordInvocation("GetCRDTState", []interface{}{arg1, arg2})
+	fake.getCRDTStateMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *QueryExecutor) GetCRDTStateCallCount() int {
+	fake.getCRDTStateMutex.RLock()
+	defer fake.getCRDTStateMutex.RUnlock()
+	return len(fake.getCRDTStateArgsForCall)
+}
+
+func (fake *QueryExecutor) GetCRDTStateCalls(stub func(string, string) ([]byte, error)) {
+	fake.getCRDTStateMutex.Lock()
+	defer fake.getCRDTStateMutex.Unlock()
+	fake.GetCRDTStateStub = stub
+}
+
+func (fake *QueryExecutor) GetCRDTStateArgsForCall(i int) (string, string) {
+	fake.getCRDTStateMutex.RLock()
+	defer fake.getCRDTStateMutex.RUnlock()
+	argsForCall := fake.getCRDTStateArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *QueryExecutor) GetCRDTStateReturns(result1 []byte, result2 error) {
+	fake.getCRDTStateMutex.Lock()
+	defer fake.getCRDTStateMutex.Unlock()
+	fake.GetCRDTStateStub = nil
+	fake.getCRDTStateReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *QueryExecutor) GetCRDTStateReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.getCRDTStateMutex.Lock()
+	defer fake.getCRDTStateMutex.Unlock()
+	fake.GetCRDTStateStub = nil
+	if fake.getCRDTStateReturnsOnCall == nil {
+		fake.getCRDTStateReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.getCRDTStateReturnsOnCall[i] = struct {
+		result1 []byte
 		result2 error
 	}{result1, result2}
 }
@@ -1199,6 +1278,8 @@ func (fake *QueryExecutor) Invocations() map[string][][]interface{} {
 	defer fake.executeQueryOnPrivateDataMutex.RUnlock()
 	fake.executeQueryWithPaginationMutex.RLock()
 	defer fake.executeQueryWithPaginationMutex.RUnlock()
+	fake.getCRDTStateMutex.RLock()
+	defer fake.getCRDTStateMutex.RUnlock()
 	fake.getPrivateDataMutex.RLock()
 	defer fake.getPrivateDataMutex.RUnlock()
 	fake.getPrivateDataHashMutex.RLock()

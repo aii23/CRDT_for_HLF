@@ -417,11 +417,13 @@ func unmarshalRWSet(b []byte) ChaincodeKVRWSet {
 
 	for i, v := range kvrwset.CrdtPayload {
 		// #TODO Fantom empty crdt payload
-		// fmt.Println("!")
-		// fmt.Println(string(v.Data))
-		// fmt.Println("!")
+		fmt.Println("!")
+		fmt.Println(string(v.Data))
+		fmt.Println("!")
 		crdtPayload[i] = CRDTPayload{
-			Data: v.Data,
+			ResolutionType: v.ResolutionType,
+			Key:            v.Key,
+			Data:           v.Data,
 		}
 
 		fmt.Println(crdtPayload[i])
@@ -440,7 +442,7 @@ func unmarshalRWSet(b []byte) ChaincodeKVRWSet {
 
 func unmarshalBlockMetadata(metadata *common.BlockMetadata) BlockMetadata {
 	return BlockMetadata{}
-	panic("unimplemented")
+	panic("unimplemented unmarshalBlockMetadata")
 }
 
 func CToGoString(c []byte) string {

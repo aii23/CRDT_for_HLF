@@ -43,8 +43,8 @@ func (s *txSimulator) SetState(ns string, key string, value []byte) error {
 	return s.checkStateMetadata(ns, key)
 }
 
-func (s *txSimulator) SetSomeCRDT(ns string, value []byte) error {
-	s.rwsetBuilder.AddToCRDT(ns, value)
+func (s *txSimulator) SetCRDT(ns string, resType string, key string, value []byte) error {
+	s.rwsetBuilder.AddToCRDT(ns, resType, key, value)
 	return nil
 }
 

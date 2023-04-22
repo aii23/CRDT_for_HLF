@@ -119,6 +119,20 @@ type TxSimulator struct {
 	executeUpdateReturnsOnCall map[int]struct {
 		result1 error
 	}
+	GetCRDTStateStub        func(string, string) ([]byte, error)
+	getCRDTStateMutex       sync.RWMutex
+	getCRDTStateArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	getCRDTStateReturns struct {
+		result1 []byte
+		result2 error
+	}
+	getCRDTStateReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 error
+	}
 	GetPrivateDataStub        func(string, string, string) ([]byte, error)
 	getPrivateDataMutex       sync.RWMutex
 	getPrivateDataArgsForCall []struct {
@@ -308,6 +322,20 @@ type TxSimulator struct {
 	purgePrivateDataReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SetCRDTStub        func(string, string, string, []byte) error
+	setCRDTMutex       sync.RWMutex
+	setCRDTArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 []byte
+	}
+	setCRDTReturns struct {
+		result1 error
+	}
+	setCRDTReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SetPrivateDataStub        func(string, string, string, []byte) error
 	setPrivateDataMutex       sync.RWMutex
 	setPrivateDataArgsForCall []struct {
@@ -347,18 +375,6 @@ type TxSimulator struct {
 		result1 error
 	}
 	setPrivateDataMultipleKeysReturnsOnCall map[int]struct {
-		result1 error
-	}
-	SetSomeCRDTStub        func(string, []byte) error
-	setSomeCRDTMutex       sync.RWMutex
-	setSomeCRDTArgsForCall []struct {
-		arg1 string
-		arg2 []byte
-	}
-	setSomeCRDTReturns struct {
-		result1 error
-	}
-	setSomeCRDTReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SetStateStub        func(string, string, []byte) error
@@ -934,6 +950,71 @@ func (fake *TxSimulator) ExecuteUpdateReturnsOnCall(i int, result1 error) {
 	fake.executeUpdateReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *TxSimulator) GetCRDTState(arg1 string, arg2 string) ([]byte, error) {
+	fake.getCRDTStateMutex.Lock()
+	ret, specificReturn := fake.getCRDTStateReturnsOnCall[len(fake.getCRDTStateArgsForCall)]
+	fake.getCRDTStateArgsForCall = append(fake.getCRDTStateArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.GetCRDTStateStub
+	fakeReturns := fake.getCRDTStateReturns
+	fake.recordInvocation("GetCRDTState", []interface{}{arg1, arg2})
+	fake.getCRDTStateMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *TxSimulator) GetCRDTStateCallCount() int {
+	fake.getCRDTStateMutex.RLock()
+	defer fake.getCRDTStateMutex.RUnlock()
+	return len(fake.getCRDTStateArgsForCall)
+}
+
+func (fake *TxSimulator) GetCRDTStateCalls(stub func(string, string) ([]byte, error)) {
+	fake.getCRDTStateMutex.Lock()
+	defer fake.getCRDTStateMutex.Unlock()
+	fake.GetCRDTStateStub = stub
+}
+
+func (fake *TxSimulator) GetCRDTStateArgsForCall(i int) (string, string) {
+	fake.getCRDTStateMutex.RLock()
+	defer fake.getCRDTStateMutex.RUnlock()
+	argsForCall := fake.getCRDTStateArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *TxSimulator) GetCRDTStateReturns(result1 []byte, result2 error) {
+	fake.getCRDTStateMutex.Lock()
+	defer fake.getCRDTStateMutex.Unlock()
+	fake.GetCRDTStateStub = nil
+	fake.getCRDTStateReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *TxSimulator) GetCRDTStateReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.getCRDTStateMutex.Lock()
+	defer fake.getCRDTStateMutex.Unlock()
+	fake.GetCRDTStateStub = nil
+	if fake.getCRDTStateReturnsOnCall == nil {
+		fake.getCRDTStateReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.getCRDTStateReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *TxSimulator) GetPrivateData(arg1 string, arg2 string, arg3 string) ([]byte, error) {
@@ -1795,6 +1876,75 @@ func (fake *TxSimulator) PurgePrivateDataReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *TxSimulator) SetCRDT(arg1 string, arg2 string, arg3 string, arg4 []byte) error {
+	var arg4Copy []byte
+	if arg4 != nil {
+		arg4Copy = make([]byte, len(arg4))
+		copy(arg4Copy, arg4)
+	}
+	fake.setCRDTMutex.Lock()
+	ret, specificReturn := fake.setCRDTReturnsOnCall[len(fake.setCRDTArgsForCall)]
+	fake.setCRDTArgsForCall = append(fake.setCRDTArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 []byte
+	}{arg1, arg2, arg3, arg4Copy})
+	stub := fake.SetCRDTStub
+	fakeReturns := fake.setCRDTReturns
+	fake.recordInvocation("SetCRDT", []interface{}{arg1, arg2, arg3, arg4Copy})
+	fake.setCRDTMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *TxSimulator) SetCRDTCallCount() int {
+	fake.setCRDTMutex.RLock()
+	defer fake.setCRDTMutex.RUnlock()
+	return len(fake.setCRDTArgsForCall)
+}
+
+func (fake *TxSimulator) SetCRDTCalls(stub func(string, string, string, []byte) error) {
+	fake.setCRDTMutex.Lock()
+	defer fake.setCRDTMutex.Unlock()
+	fake.SetCRDTStub = stub
+}
+
+func (fake *TxSimulator) SetCRDTArgsForCall(i int) (string, string, string, []byte) {
+	fake.setCRDTMutex.RLock()
+	defer fake.setCRDTMutex.RUnlock()
+	argsForCall := fake.setCRDTArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *TxSimulator) SetCRDTReturns(result1 error) {
+	fake.setCRDTMutex.Lock()
+	defer fake.setCRDTMutex.Unlock()
+	fake.SetCRDTStub = nil
+	fake.setCRDTReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *TxSimulator) SetCRDTReturnsOnCall(i int, result1 error) {
+	fake.setCRDTMutex.Lock()
+	defer fake.setCRDTMutex.Unlock()
+	fake.SetCRDTStub = nil
+	if fake.setCRDTReturnsOnCall == nil {
+		fake.setCRDTReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setCRDTReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *TxSimulator) SetPrivateData(arg1 string, arg2 string, arg3 string, arg4 []byte) error {
 	var arg4Copy []byte
 	if arg4 != nil {
@@ -1987,73 +2137,6 @@ func (fake *TxSimulator) SetPrivateDataMultipleKeysReturnsOnCall(i int, result1 
 		})
 	}
 	fake.setPrivateDataMultipleKeysReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *TxSimulator) SetSomeCRDT(arg1 string, arg2 []byte) error {
-	var arg2Copy []byte
-	if arg2 != nil {
-		arg2Copy = make([]byte, len(arg2))
-		copy(arg2Copy, arg2)
-	}
-	fake.setSomeCRDTMutex.Lock()
-	ret, specificReturn := fake.setSomeCRDTReturnsOnCall[len(fake.setSomeCRDTArgsForCall)]
-	fake.setSomeCRDTArgsForCall = append(fake.setSomeCRDTArgsForCall, struct {
-		arg1 string
-		arg2 []byte
-	}{arg1, arg2Copy})
-	stub := fake.SetSomeCRDTStub
-	fakeReturns := fake.setSomeCRDTReturns
-	fake.recordInvocation("SetSomeCRDT", []interface{}{arg1, arg2Copy})
-	fake.setSomeCRDTMutex.Unlock()
-	if stub != nil {
-		return stub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *TxSimulator) SetSomeCRDTCallCount() int {
-	fake.setSomeCRDTMutex.RLock()
-	defer fake.setSomeCRDTMutex.RUnlock()
-	return len(fake.setSomeCRDTArgsForCall)
-}
-
-func (fake *TxSimulator) SetSomeCRDTCalls(stub func(string, []byte) error) {
-	fake.setSomeCRDTMutex.Lock()
-	defer fake.setSomeCRDTMutex.Unlock()
-	fake.SetSomeCRDTStub = stub
-}
-
-func (fake *TxSimulator) SetSomeCRDTArgsForCall(i int) (string, []byte) {
-	fake.setSomeCRDTMutex.RLock()
-	defer fake.setSomeCRDTMutex.RUnlock()
-	argsForCall := fake.setSomeCRDTArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *TxSimulator) SetSomeCRDTReturns(result1 error) {
-	fake.setSomeCRDTMutex.Lock()
-	defer fake.setSomeCRDTMutex.Unlock()
-	fake.SetSomeCRDTStub = nil
-	fake.setSomeCRDTReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *TxSimulator) SetSomeCRDTReturnsOnCall(i int, result1 error) {
-	fake.setSomeCRDTMutex.Lock()
-	defer fake.setSomeCRDTMutex.Unlock()
-	fake.SetSomeCRDTStub = nil
-	if fake.setSomeCRDTReturnsOnCall == nil {
-		fake.setSomeCRDTReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.setSomeCRDTReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -2272,6 +2355,8 @@ func (fake *TxSimulator) Invocations() map[string][][]interface{} {
 	defer fake.executeQueryWithPaginationMutex.RUnlock()
 	fake.executeUpdateMutex.RLock()
 	defer fake.executeUpdateMutex.RUnlock()
+	fake.getCRDTStateMutex.RLock()
+	defer fake.getCRDTStateMutex.RUnlock()
 	fake.getPrivateDataMutex.RLock()
 	defer fake.getPrivateDataMutex.RUnlock()
 	fake.getPrivateDataHashMutex.RLock()
@@ -2298,14 +2383,14 @@ func (fake *TxSimulator) Invocations() map[string][][]interface{} {
 	defer fake.getTxSimulationResultsMutex.RUnlock()
 	fake.purgePrivateDataMutex.RLock()
 	defer fake.purgePrivateDataMutex.RUnlock()
+	fake.setCRDTMutex.RLock()
+	defer fake.setCRDTMutex.RUnlock()
 	fake.setPrivateDataMutex.RLock()
 	defer fake.setPrivateDataMutex.RUnlock()
 	fake.setPrivateDataMetadataMutex.RLock()
 	defer fake.setPrivateDataMetadataMutex.RUnlock()
 	fake.setPrivateDataMultipleKeysMutex.RLock()
 	defer fake.setPrivateDataMultipleKeysMutex.RUnlock()
-	fake.setSomeCRDTMutex.RLock()
-	defer fake.setSomeCRDTMutex.RUnlock()
 	fake.setStateMutex.RLock()
 	defer fake.setStateMutex.RUnlock()
 	fake.setStateMetadataMutex.RLock()

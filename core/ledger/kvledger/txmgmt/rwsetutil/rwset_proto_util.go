@@ -348,8 +348,8 @@ func newKVWrite(key string, value []byte) *kvrwset.KVWrite {
 	return &kvrwset.KVWrite{Key: key, IsDelete: len(value) == 0, Value: value}
 }
 
-func newCRDTData(value []byte) *kvrwset.CRDTPayload {
-	return &kvrwset.CRDTPayload{Data: value}
+func newCRDTData(resType string, key string, value []byte) *kvrwset.CRDTPayload {
+	return &kvrwset.CRDTPayload{ResolutionType: resType, Key: key, Data: value}
 }
 
 func newPvtKVReadHash(key string, version *version.Height) *kvrwset.KVReadHash {

@@ -41,7 +41,7 @@ type nsPubRwBuilder struct {
 	rangeQueriesMap   map[rangeQueryKey]*kvrwset.RangeQueryInfo // for phantom read validation
 	rangeQueriesKeys  []rangeQueryKey
 	collHashRwBuilder map[string]*collHashRwBuilder
-	CRDT              *kvrwset.CRDTPayload
+	CRDT              []*kvrwset.CRDTPayload
 }
 
 type collHashRwBuilder struct {
@@ -86,9 +86,9 @@ func (b *RWSetBuilder) AddToWriteSet(ns string, key string, value []byte) {
 	nsPubRwBuilder.writeMap[key] = newKVWrite(key, value)
 }
 
-func (b *RWSetBuilder) AddToCRDT(ns string, value []byte) {
+func (b *RWSetBuilder) AddToCRDT(ns string, resType string, key string, value []byte) {
 	nsPubRwBuilder := b.getOrCreateNsPubRwBuilder(ns)
-	nsPubRwBuilder.CRDT = newCRDTData(value)
+	nsPubRwBuilder.CRDT = append(nsPubRwBuilder.CRDT, newCRDTData(resType, key, value))
 	// nsPubRwBuilder.writeMap[key] = newKVWrite(key, value)
 }
 
@@ -217,7 +217,7 @@ func (b *nsPubRwBuilder) build() *NsRwSet {
 
 	// crdtPayload = append(crdtPayload, &kvrwset.CRDTPayload{Data: []byte("Hi")})
 
-	crdtPayload = append(crdtPayload, b.CRDT)
+	crdtPayload = b.CRDT
 	// add read set
 	util.GetValuesBySortedKeys(&(b.readMap), &readSet)
 	// add write set

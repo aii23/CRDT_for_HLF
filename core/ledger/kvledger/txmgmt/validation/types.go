@@ -110,3 +110,28 @@ func (u *publicAndHashUpdates) applyWriteSet(
 	}
 	return nil
 }
+
+func (u *publicAndHashUpdates) applyCRDT(
+	txRWSet *rwsetutil.TxRwSet,
+	txHeight *version.Height,
+	db *privacyenabledstate.DB,
+	containsPostOrderWrites bool,
+) error {
+	// Save txHeight
+	// Save (ns : key) -> value
+	for _, nsRwSet := range txRWSet.NsRwSets {
+		ns := nsRwSet.NameSpace
+
+		for _, crdt := range nsRwSet.KvRwSet.CrdtPayload {
+			metadata := []byte("") // #TODO Shold be get some metadata?
+
+			err := u.publicUpdates.CRDTMerge(db.GetState, ns, crdt.Key, crdt.Data, crdt.ResolutionType, metadata, txHeight)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil // #TODO return something
+}

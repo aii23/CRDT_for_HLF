@@ -7,9 +7,12 @@ SPDX-License-Identifier: Apache-2.0
 package statedb
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/hyperledger/fabric/core/ledger/internal/version"
+	// "github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
+	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb/crdt_resolver"
 	"github.com/hyperledger/fabric/core/ledger/util"
 )
 
@@ -198,6 +201,42 @@ func (batch *UpdateBatch) PutValAndMetadata(ns string, key string, value []byte,
 		panic("Nil value not allowed. Instead call 'Delete' function")
 	}
 	batch.Update(ns, key, &VersionedValue{value, metadata, version})
+}
+
+func (batch *UpdateBatch) CRDTMerge(getState func(ns string, key string) (*VersionedValue, error),
+	ns string, key string, data []byte, resType string, metadata []byte, version *version.Height) error {
+	curVV := batch.getOrCreateNsUpdates(ns).M[key]
+
+	if curVV == nil {
+		// Get value from database
+		curState, err := getState(ns, key)
+
+		// curValue, err = getState(ns, key)
+
+		if err != nil {
+
+		}
+
+		curVV = curState
+	}
+
+	curValue := make([]byte, 0)
+
+	if curVV != nil {
+		curValue = curVV.Value
+	}
+
+	// Merge data using resType
+	fmt.Println(resType)
+	mergedValue, err := crdt_resolver.Resolve(curValue, data, resType)
+
+	if err != nil {
+		return err
+	}
+
+	batch.Update(ns, key, &VersionedValue{mergedValue, metadata, version})
+
+	return nil
 }
 
 // Delete deletes a Key and associated value

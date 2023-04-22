@@ -80,6 +80,8 @@ type ChaincodeStubInterface interface {
 	// If the key does not exist in the state database, (nil, nil) is returned.
 	GetState(key string) ([]byte, error)
 
+	GetCRDTState(key string) ([]byte, error)
+
 	// PutState puts the specified `key` and `value` into the transaction's
 	// writeset as a data-write proposal. PutState doesn't effect the ledger
 	// until the transaction is validated and successfully committed.
@@ -90,7 +92,9 @@ type ChaincodeStubInterface interface {
 	// valid UTF-8 strings and cannot begin with an underscore ("_").
 	PutState(key string, value []byte) error
 
-	PutSomeCRDT(value []byte) error
+	PutCRDT(resType string, key string, value []byte) error
+
+	// PutCRDTState(key string, diff []byte, merge func([]byte, []byte) ([]byte, error)) error
 
 	// DelState records the specified `key` to be deleted in the writeset of
 	// the transaction proposal. The `key` and its value will be deleted from

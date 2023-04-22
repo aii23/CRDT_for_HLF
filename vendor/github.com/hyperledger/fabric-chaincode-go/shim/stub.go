@@ -165,6 +165,11 @@ func (s *ChaincodeStub) GetState(key string) ([]byte, error) {
 	return s.handler.handleGetState(collection, key, s.ChannelID, s.TxID)
 }
 
+func (s *ChaincodeStub) GetCRDTState(key string) ([]byte, error) {
+	collection := ""
+	return s.handler.handleGetCRDTState(collection, key, s.ChannelID, s.TxID)
+}
+
 // SetStateValidationParameter documentation can be found in interfaces.go
 func (s *ChaincodeStub) SetStateValidationParameter(key string, ep []byte) error {
 	return s.handler.handlePutStateMetadataEntry("", key, s.validationParameterMetakey, ep, s.ChannelID, s.TxID)
@@ -192,8 +197,12 @@ func (s *ChaincodeStub) PutState(key string, value []byte) error {
 	return s.handler.handlePutState(collection, key, value, s.ChannelID, s.TxID)
 }
 
-func (s *ChaincodeStub) PutSomeCRDT(value []byte) error {
-	return s.handler.handlePutSomeCRDT(s.ChannelID, value, s.TxID)
+func (s *ChaincodeStub) PutCRDT(resType string, key string, value []byte) error {
+	if key == "" {
+		return errors.New("key must not be an empty string")
+	}
+
+	return s.handler.handlePutCRDT(s.ChannelID, resType, key, value, s.TxID)
 }
 
 func (s *ChaincodeStub) createStateQueryIterator(response *pb.QueryResponse) *StateQueryIterator {

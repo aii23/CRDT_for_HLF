@@ -254,6 +254,29 @@ func (h *Handler) handleGetState(collection string, key string, channelID string
 	return nil, fmt.Errorf("[%s] incorrect chaincode message %s received. Expecting %s or %s", shorttxid(responseMsg.Txid), responseMsg.Type, pb.ChaincodeMessage_RESPONSE, pb.ChaincodeMessage_ERROR)
 }
 
+func (h *Handler) handleGetCRDTState(collection string, key string, channelID string, txid string) ([]byte, error) {
+	// Construct payload for GET_STATE
+	payloadBytes := marshalOrPanic(&pb.GetState{Collection: collection, Key: key})
+
+	msg := &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_GET_CRDT_STATE, Payload: payloadBytes, Txid: txid, ChannelId: channelID}
+	responseMsg, err := h.callPeerWithChaincodeMsg(msg, channelID, txid)
+	if err != nil {
+		return nil, fmt.Errorf("[%s] error sending %s: %s", shorttxid(txid), pb.ChaincodeMessage_GET_CRDT_STATE, err)
+	}
+
+	if responseMsg.Type == pb.ChaincodeMessage_RESPONSE {
+		// Success response
+		return responseMsg.Payload, nil
+	}
+	if responseMsg.Type == pb.ChaincodeMessage_ERROR {
+		// Error response
+		return nil, fmt.Errorf("%s", responseMsg.Payload[:])
+	}
+
+	// Incorrect chaincode message received
+	return nil, fmt.Errorf("[%s] incorrect chaincode message %s received. Expecting %s or %s", shorttxid(responseMsg.Txid), responseMsg.Type, pb.ChaincodeMessage_RESPONSE, pb.ChaincodeMessage_ERROR)
+}
+
 func (h *Handler) handleGetPrivateDataHash(collection string, key string, channelID string, txid string) ([]byte, error) {
 	// Construct payload for GET_PRIVATE_DATA_HASH
 	payloadBytes := marshalOrPanic(&pb.GetState{Collection: collection, Key: key})
@@ -337,18 +360,15 @@ func (h *Handler) handlePutState(collection string, key string, value []byte, ch
 	return fmt.Errorf("[%s] incorrect chaincode message %s received. Expecting %s or %s", shorttxid(responseMsg.Txid), responseMsg.Type, pb.ChaincodeMessage_RESPONSE, pb.ChaincodeMessage_ERROR)
 }
 
-func (h *Handler) handlePutSomeCRDT(channelID string, value []byte, txid string) error {
+func (h *Handler) handlePutCRDT(channelID string, resType string, key string, value []byte, txid string) error {
+	payloadBytes := marshalOrPanic(&pb.PutCRDT{ResolutionType: resType, Key: key, Value: value})
 
-	payloadBytes := marshalOrPanic(&pb.PutSomeCRDT{Value: value})
-
-	// return fmt.Errorf("WTF")
-
-	msg := &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_PUT_SOME_CRDT, Payload: payloadBytes, Txid: txid, ChannelId: channelID}
+	msg := &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_PUT_CRDT, Payload: payloadBytes, Txid: txid, ChannelId: channelID}
 
 	// Execute the request and get response
 	responseMsg, err := h.callPeerWithChaincodeMsg(msg, channelID, txid)
 	if err != nil {
-		return fmt.Errorf("[%s] error sending %s: %s", msg.Txid, pb.ChaincodeMessage_PUT_SOME_CRDT, err)
+		return fmt.Errorf("[%s] error sending %s: %s", msg.Txid, pb.ChaincodeMessage_PUT_CRDT, err)
 	}
 
 	if responseMsg.Type == pb.ChaincodeMessage_RESPONSE {
