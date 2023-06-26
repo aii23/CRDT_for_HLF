@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 func Resolve(curValue []byte, diffValue []byte, resType string) ([]byte, error) {
 
 	switch resType {
+	case "Set":
+		return diffValue, nil
 	case "IntAdd":
 		return intAddResolve(curValue, diffValue)
 	case "UintSub":
@@ -17,6 +20,8 @@ func Resolve(curValue []byte, diffValue []byte, resType string) ([]byte, error) 
 		return stringConcatResolve(curValue, diffValue)
 	case "ArrayAppend":
 		return arrayAppendResolve(curValue, diffValue)
+	case "Wait": // Just for testing purpose. Useless otherwise.
+		return waitResolve(diffValue)
 	default:
 		return []byte(""), fmt.Errorf("Unknown resolve type")
 	}
@@ -104,6 +109,18 @@ func uintSubResolve(cur []byte, diff []byte) ([]byte, error) {
 	}
 
 	return []byte(strconv.Itoa(resValue)), nil
+}
+
+func waitResolve(val []byte) ([]byte, error) {
+	mils, err := strconv.Atoi(string(val))
+
+	if err != nil {
+		return []byte(""), err
+	}
+
+	time.Sleep(time.Duration(mils) * time.Millisecond)
+
+	return []byte(""), nil
 }
 
 // sub two number checking for overflow

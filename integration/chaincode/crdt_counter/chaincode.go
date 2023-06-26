@@ -64,7 +64,7 @@ func (t *CRDT_counter) query(stub shim.ChaincodeStubInterface, args []string) pb
 	A = args[0]
 
 	// Get the state from the ledger
-	Avalbytes, err := stub.GetState(A)
+	Avalbytes, err := stub.GetCRDTState(A)
 	if err != nil {
 		jsonResp := "{\"Error\":\"Failed to get state for " + A + "\"}"
 		return shim.Error(jsonResp)

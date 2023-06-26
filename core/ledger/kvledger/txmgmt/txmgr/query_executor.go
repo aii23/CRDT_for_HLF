@@ -65,7 +65,7 @@ func (q *queryExecutor) GetState(ns, key string) ([]byte, error) {
 }
 
 func (q *queryExecutor) GetCRDTState(ns, key string) ([]byte, error) {
-	val, _, err := q.getState(ns, key)
+	val, _, err := q.getCRDTState(ns, key)
 	return val, err
 }
 

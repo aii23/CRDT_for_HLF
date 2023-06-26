@@ -184,8 +184,6 @@ var _ = Describe("EndToEnd", func() {
 		})
 
 		It("executes a basic etcdraft network with 2 orgs and no docker", func() {
-			// Skip("For now")
-
 			By("getting the orderer by name")
 			orderer := network.Orderer("orderer")
 
@@ -261,13 +259,6 @@ var _ = Describe("EndToEnd", func() {
 			Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit(0))
 			Expect(sess.Err).To(gbytes.Say("Received block: "))
 
-			//            showBlock(outputBlock)
-
-			//			block := nwo.UnmarshalBlockFromFile(outputBlock)
-			//			fmt.Printf("Amount of data: %d\n", len(block.Data.Data))
-			//
-			//			fmt.Printf("%x\n", block.Data.Data[0])
-
 			/// First Run
 			RunInvoke(network, orderer, peer, "testchannel", "b", "25")
 
@@ -279,8 +270,6 @@ var _ = Describe("EndToEnd", func() {
 			showBlock(outputBlock)
 
 			PrintQueryResponse(network, orderer, peer, "testchannel", "b")
-			// PrintQueryResponse(network, orderer, peer, "testchannel", "Standart key")
-			PrintQueryResponse(network, orderer, peer, "testchannel", "key")
 
 			/// Second Run
 			RunInvoke(network, orderer, peer, "testchannel", "b", "25")
@@ -293,13 +282,9 @@ var _ = Describe("EndToEnd", func() {
 			showBlock(outputBlock)
 
 			PrintQueryResponse(network, orderer, peer, "testchannel", "b")
-
-			// PrintQueryResponse(network, orderer, peer, "testchannel", "Standart key")
-			PrintQueryResponse(network, orderer, peer, "testchannel", "key")
 		})
 
 		It("Crdt counter check", func() {
-			// Skip("For now")
 			By("getting the orderer by name")
 			orderer := network.Orderer("orderer")
 
@@ -430,7 +415,7 @@ var _ = Describe("EndToEnd", func() {
 
 			By("getting the client peer by name")
 			peer := network.Peer("Org1", "peer0")
-			peer2 := network.Peer("Org2", "peer0")
+			// peer2 := network.Peer("Org2", "peer0")
 
 			outputBlock := filepath.Join(testDir, "newest_block.pb")
 			fetchNewest := commands.ChannelFetch{
@@ -446,7 +431,16 @@ var _ = Describe("EndToEnd", func() {
 
 			RunInvoke0(network, orderer, peer, "testchannel", "Mint", "10000")
 
-			RunInvoke0(network, orderer, peer, "testchannel", "Transfer", peer2.ID(), "55000")
+			sess, err = network.PeerAdminSession(peer, fetchNewest)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess, network.EventuallyTimeout).Should(gexec.Exit(0))
+			Expect(sess.Err).To(gbytes.Say("Received block: "))
+
+			showBlock(outputBlock)
+
+			// RunInvoke0(network, orderer, peer, "testchannel", "Transfer", peer2.ID(), "55000")
+
+			//            showBlock(outputBlock)
 
 			// PrintQueryResponse(network, orderer, peer, "testchannel", peer.ID())
 		})
@@ -465,45 +459,6 @@ func showBlock(outputBlock string) {
 	block := bd.UnmarshalBlock(blockBytes)
 	block.Display()
 	block.DisplaySymplyfied()
-
-	//	block := nwo.UnmarshalBlockFromFile(outputBlock)
-	//
-	//    showBlockHeader(block.Header)
-	//
-	//    showBlockMetadata(block.Metadata)
-	//
-	//    showBlockData(block.Data);
-
-	//	fmt.Printf("%x\n\n", block.Data.Data[0])
-	//
-	//	// Get envilope
-	//	// Envelope = tx. Payload + Signature
-	//	fmt.Printf("Amount of data: %d\n", len(block.Data.Data))
-	//	envelope, err := protoutil.GetEnvelopeFromBlock(block.Data.Data[0]) // protoutils
-	//	if err != nil {
-	//		fmt.Println(err)
-	//		return
-	//	}
-	//
-	//	// Get payload
-	//	// Payload - another layer. Header + Data
-	//	payload, err := protoutil.UnmarshalPayload(envelope.Payload)
-	//	if err != nil {
-	//		fmt.Println(err)
-	//		return
-	//	}
-	//
-	//	fmt.Printf("%x\n\n", payload.Data)
-	//
-	//	transactionAction := &pb.TransactionAction{}
-	//
-	//	if err = proto.Unmarshal(payload.Data, transactionAction); err != nil {
-	//		fmt.Println(err)
-	//		return
-	//	}
-	//
-	//	fmt.Printf("Tranasction action header:\n %x\n\n", transactionAction.Header)
-	//	fmt.Printf("Tranasction action payload:\n %x\n\n", transactionAction.Payload)
 }
 
 func showBlockHeader(header *common.BlockHeader) {
@@ -535,8 +490,6 @@ func showBlockData(data *common.BlockData) {
 		fmt.Println(err)
 		return
 	}
-
-	// #TODO payload header
 
 	transaction := &pb.Transaction{}
 	if err = proto.Unmarshal(payload.Data, transaction); err != nil {

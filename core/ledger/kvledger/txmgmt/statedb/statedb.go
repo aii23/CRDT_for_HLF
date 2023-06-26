@@ -161,6 +161,8 @@ type nsUpdates struct {
 	M map[string]*VersionedValue
 }
 
+const crdtPrefix string = "CRDTFIELD_"
+
 func newNsUpdates() *nsUpdates {
 	return &nsUpdates{make(map[string]*VersionedValue)}
 }
@@ -204,17 +206,20 @@ func (batch *UpdateBatch) PutValAndMetadata(ns string, key string, value []byte,
 }
 
 func (batch *UpdateBatch) CRDTMerge(getState func(ns string, key string) (*VersionedValue, error),
-	ns string, key string, data []byte, resType string, metadata []byte, version *version.Height) error {
+	ns string, key string, data []byte, resType string, metadata []byte, version *version.Height) (*VersionedValue, error) {
+
+	if len(key) < len(crdtPrefix) || key[0:len(crdtPrefix)] != crdtPrefix {
+		return nil, fmt.Errorf("Wrong prefix for crdt field. Should be '%s', but got '%s'", crdtPrefix, key[0:len(crdtPrefix)])
+	}
+
 	curVV := batch.getOrCreateNsUpdates(ns).M[key]
 
 	if curVV == nil {
 		// Get value from database
 		curState, err := getState(ns, key)
 
-		// curValue, err = getState(ns, key)
-
 		if err != nil {
-
+			return nil, err
 		}
 
 		curVV = curState
@@ -231,12 +236,12 @@ func (batch *UpdateBatch) CRDTMerge(getState func(ns string, key string) (*Versi
 	mergedValue, err := crdt_resolver.Resolve(curValue, data, resType)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	batch.Update(ns, key, &VersionedValue{mergedValue, metadata, version})
 
-	return nil
+	return curVV, nil
 }
 
 // Delete deletes a Key and associated value

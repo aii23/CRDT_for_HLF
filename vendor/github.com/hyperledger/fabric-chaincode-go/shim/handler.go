@@ -20,6 +20,8 @@ const (
 	ready       state = "ready"       // ready for requests
 )
 
+const crdtPrefix string = "CRDTFIELD_"
+
 // PeerChaincodeStream is the common stream interface for Peer - chaincode communication.
 // Both chaincode-as-server and chaincode-as-client patterns need to support this
 type PeerChaincodeStream interface {
@@ -255,6 +257,9 @@ func (h *Handler) handleGetState(collection string, key string, channelID string
 }
 
 func (h *Handler) handleGetCRDTState(collection string, key string, channelID string, txid string) ([]byte, error) {
+
+	key = crdtPrefix + key
+
 	// Construct payload for GET_STATE
 	payloadBytes := marshalOrPanic(&pb.GetState{Collection: collection, Key: key})
 
@@ -335,6 +340,10 @@ func (h *Handler) handleGetStateMetadata(collection string, key string, channelI
 
 // handlePutState communicates with the peer to put state information into the ledger.
 func (h *Handler) handlePutState(collection string, key string, value []byte, channelID string, txid string) error {
+	if len(key) >= len(crdtPrefix) && key[0:len(crdtPrefix)] == crdtPrefix {
+		return fmt.Errorf("can't write to key with prefix %s wit putstate", crdtPrefix)
+	}
+
 	// Construct payload for PUT_STATE
 	payloadBytes := marshalOrPanic(&pb.PutState{Collection: collection, Key: key, Value: value})
 
@@ -361,6 +370,8 @@ func (h *Handler) handlePutState(collection string, key string, value []byte, ch
 }
 
 func (h *Handler) handlePutCRDT(channelID string, resType string, key string, value []byte, txid string) error {
+	key = crdtPrefix + key
+
 	payloadBytes := marshalOrPanic(&pb.PutCRDT{ResolutionType: resType, Key: key, Value: value})
 
 	msg := &pb.ChaincodeMessage{Type: pb.ChaincodeMessage_PUT_CRDT, Payload: payloadBytes, Txid: txid, ChannelId: channelID}

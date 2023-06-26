@@ -101,9 +101,11 @@ func (v *validator) validateAndPrepareBatch(blk *block, doMVCCValidation bool) (
 
 		committingTxHeight := version.NewHeight(blk.num, uint64(tx.indexInBlock))
 
-		if err := updates.applyCRDT(tx.rwset, committingTxHeight, v.db, tx.containsPostOrderWrites); err != nil {
-			logger.Warningf("CRDT error while processing transaction %d from block %d", tx.id, blk.num)
-			validationCode = peer.TxValidationCode_CRDT_CONFLICT
+		if validationCode == peer.TxValidationCode_VALID {
+			if err := updates.applyCRDT(tx.rwset, committingTxHeight, v.db, tx.containsPostOrderWrites); err != nil {
+				logger.Warningf("CRDT error <%s> while processing transaction %d from block %d", err, tx.id, blk.num)
+				validationCode = peer.TxValidationCode_CRDT_CONFLICT
+			}
 		}
 
 		tx.validationCode = validationCode
