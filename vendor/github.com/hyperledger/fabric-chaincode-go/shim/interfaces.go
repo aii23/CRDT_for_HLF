@@ -80,6 +80,8 @@ type ChaincodeStubInterface interface {
 	// If the key does not exist in the state database, (nil, nil) is returned.
 	GetState(key string) ([]byte, error)
 
+	GetCRDTState(key string) ([]byte, error)
+
 	// PutState puts the specified `key` and `value` into the transaction's
 	// writeset as a data-write proposal. PutState doesn't effect the ledger
 	// until the transaction is validated and successfully committed.
@@ -89,6 +91,10 @@ type ChaincodeStubInterface interface {
 	// key namespace. In addition, if using CouchDB, keys can only contain
 	// valid UTF-8 strings and cannot begin with an underscore ("_").
 	PutState(key string, value []byte) error
+
+	PutCRDT(resType string, key string, value []byte) error
+
+	// PutCRDTState(key string, diff []byte, merge func([]byte, []byte) ([]byte, error)) error
 
 	// DelState records the specified `key` to be deleted in the writeset of
 	// the transaction proposal. The `key` and its value will be deleted from
@@ -147,7 +153,9 @@ type ChaincodeStubInterface interface {
 	// See related functions SplitCompositeKey and CreateCompositeKey.
 	// Call Close() on the returned StateQueryIteratorInterface object when done.
 	// The query is re-executed during validation phase to ensure result set
-	// has not changed since transaction endorsement (phantom reads detected).
+	// has not changed since transaction endorsement (phantom reads detected). This function should be used only for
+	// a partial composite key. For a full composite key, an iter with empty response
+	// would be returned.
 	GetStateByPartialCompositeKey(objectType string, keys []string) (StateQueryIteratorInterface, error)
 
 	// GetStateByPartialCompositeKeyWithPagination queries the state in the ledger based on
@@ -167,7 +175,9 @@ type ChaincodeStubInterface interface {
 	// and should not contain U+0000 (nil byte) and U+10FFFF (biggest and unallocated
 	// code point). See related functions SplitCompositeKey and CreateCompositeKey.
 	// Call Close() on the returned StateQueryIteratorInterface object when done.
-	// This call is only supported in a read only transaction.
+	// This call is only supported in a read only transaction. This function should be used only for
+	// a partial composite key. For a full composite key, an iter with empty response
+	// would be returned.
 	GetStateByPartialCompositeKeyWithPagination(objectType string, keys []string,
 		pageSize int32, bookmark string) (StateQueryIteratorInterface, *pb.QueryResponseMetadata, error)
 
@@ -307,7 +317,9 @@ type ChaincodeStubInterface interface {
 	// See related functions SplitCompositeKey and CreateCompositeKey.
 	// Call Close() on the returned StateQueryIteratorInterface object when done.
 	// The query is re-executed during validation phase to ensure result set
-	// has not changed since transaction endorsement (phantom reads detected).
+	// has not changed since transaction endorsement (phantom reads detected). This function should be used only for
+	//a partial composite key. For a full composite key, an iter with empty response
+	//would be returned.
 	GetPrivateDataByPartialCompositeKey(collection, objectType string, keys []string) (StateQueryIteratorInterface, error)
 
 	// GetPrivateDataQueryResult performs a "rich" query against a given private

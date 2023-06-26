@@ -8,6 +8,9 @@ package chaincode_test
 
 import (
 	"io"
+	"reflect"
+	"sync"
+	"testing"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -19,7 +22,10 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/fake"
 	"github.com/hyperledger/fabric/core/chaincode/mock"
 	"github.com/hyperledger/fabric/core/common/ccprovider"
+	"github.com/hyperledger/fabric/core/common/privdata"
 	"github.com/hyperledger/fabric/core/common/sysccprovider"
+	"github.com/hyperledger/fabric/core/container/ccintf"
+	"github.com/hyperledger/fabric/core/ledger"
 	"github.com/hyperledger/fabric/core/scc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -3106,3 +3112,79 @@ var _ = Describe("Handler", func() {
 		Entry("unknown", chaincode.State(999), "UNKNOWN"),
 	)
 })
+
+func TestHandler_HandlePutSomeCRDT(t *testing.T) {
+	type fields struct {
+		Keepalive              time.Duration
+		TotalQueryLimit        int
+		Invoker                Invoker
+		Registry               Registry
+		ACLProvider            ACLProvider
+		TXContexts             ContextRegistry
+		ActiveTransactions     TransactionRegistry
+		BuiltinSCCs            scc.BuiltinSCCs
+		QueryResponseBuilder   QueryResponseBuilder
+		LedgerGetter           LedgerGetter
+		IDDeserializerFactory  privdata.IdentityDeserializerFactory
+		DeployedCCInfoProvider ledger.DeployedChaincodeInfoProvider
+		UUIDGenerator          UUIDGenerator
+		AppConfig              ApplicationConfigRetriever
+		Metrics                *HandlerMetrics
+		state                  State
+		chaincodeID            string
+		serialLock             sync.Mutex
+		chatStream             ccintf.ChaincodeStream
+		errChan                chan error
+		mutex                  sync.Mutex
+		streamDoneChan         chan struct{}
+	}
+	type args struct {
+		msg       *pb.ChaincodeMessage
+		txContext *TransactionContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.ChaincodeMessage
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &Handler{
+				Keepalive:              tt.fields.Keepalive,
+				TotalQueryLimit:        tt.fields.TotalQueryLimit,
+				Invoker:                tt.fields.Invoker,
+				Registry:               tt.fields.Registry,
+				ACLProvider:            tt.fields.ACLProvider,
+				TXContexts:             tt.fields.TXContexts,
+				ActiveTransactions:     tt.fields.ActiveTransactions,
+				BuiltinSCCs:            tt.fields.BuiltinSCCs,
+				QueryResponseBuilder:   tt.fields.QueryResponseBuilder,
+				LedgerGetter:           tt.fields.LedgerGetter,
+				IDDeserializerFactory:  tt.fields.IDDeserializerFactory,
+				DeployedCCInfoProvider: tt.fields.DeployedCCInfoProvider,
+				UUIDGenerator:          tt.fields.UUIDGenerator,
+				AppConfig:              tt.fields.AppConfig,
+				Metrics:                tt.fields.Metrics,
+				state:                  tt.fields.state,
+				chaincodeID:            tt.fields.chaincodeID,
+				serialLock:             tt.fields.serialLock,
+				chatStream:             tt.fields.chatStream,
+				errChan:                tt.fields.errChan,
+				mutex:                  tt.fields.mutex,
+				streamDoneChan:         tt.fields.streamDoneChan,
+			}
+			got, err := h.HandlePutSomeCRDT(tt.args.msg, tt.args.txContext)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Handler.HandlePutSomeCRDT() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Handler.HandlePutSomeCRDT() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

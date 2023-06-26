@@ -41,6 +41,7 @@ type nsPubRwBuilder struct {
 	rangeQueriesMap   map[rangeQueryKey]*kvrwset.RangeQueryInfo // for phantom read validation
 	rangeQueriesKeys  []rangeQueryKey
 	collHashRwBuilder map[string]*collHashRwBuilder
+	CRDT              []*kvrwset.CRDTPayload
 }
 
 type collHashRwBuilder struct {
@@ -83,6 +84,12 @@ func (b *RWSetBuilder) AddToReadSet(ns string, key string, version *version.Heig
 func (b *RWSetBuilder) AddToWriteSet(ns string, key string, value []byte) {
 	nsPubRwBuilder := b.getOrCreateNsPubRwBuilder(ns)
 	nsPubRwBuilder.writeMap[key] = newKVWrite(key, value)
+}
+
+func (b *RWSetBuilder) AddToCRDT(ns string, resType string, key string, value []byte) {
+	nsPubRwBuilder := b.getOrCreateNsPubRwBuilder(ns)
+	nsPubRwBuilder.CRDT = append(nsPubRwBuilder.CRDT, newCRDTData(resType, key, value))
+	// nsPubRwBuilder.writeMap[key] = newKVWrite(key, value)
 }
 
 // AddToMetadataWriteSet adds a metadata to a key in the write-set
@@ -205,6 +212,12 @@ func (b *nsPubRwBuilder) build() *NsRwSet {
 	var metadataWriteSet []*kvrwset.KVMetadataWrite
 	var rangeQueriesInfo []*kvrwset.RangeQueryInfo
 	var collHashedRwSet []*CollHashedRwSet
+
+	var crdtPayload []*kvrwset.CRDTPayload
+
+	// crdtPayload = append(crdtPayload, &kvrwset.CRDTPayload{Data: []byte("Hi")})
+
+	crdtPayload = b.CRDT
 	// add read set
 	util.GetValuesBySortedKeys(&(b.readMap), &readSet)
 	// add write set
@@ -227,6 +240,7 @@ func (b *nsPubRwBuilder) build() *NsRwSet {
 			Writes:           writeSet,
 			MetadataWrites:   metadataWriteSet,
 			RangeQueriesInfo: rangeQueriesInfo,
+			CrdtPayload:      crdtPayload,
 		},
 		CollHashedRwSets: collHashedRwSet,
 	}
@@ -323,6 +337,7 @@ func newNsPubRwBuilder(namespace string) *nsPubRwBuilder {
 		make(map[rangeQueryKey]*kvrwset.RangeQueryInfo),
 		nil,
 		make(map[string]*collHashRwBuilder),
+		nil,
 	}
 }
 

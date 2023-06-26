@@ -144,6 +144,18 @@ func (sqe *simpleQueryExecutor) GetState(ns string, key string) ([]byte, error) 
 	return value, nil
 }
 
+func (sqe *simpleQueryExecutor) GetCRDTState(ns string, key string) ([]byte, error) {
+	versionedValue, err := sqe.VersionedDB.GetState(ns, key)
+	if err != nil {
+		return nil, err
+	}
+	var value []byte
+	if versionedValue != nil {
+		value = versionedValue.Value
+	}
+	return value, nil
+}
+
 func (sqe *simpleQueryExecutor) GetStateRangeScanIterator(ns string, startKey string, endKey string) (commonledger.ResultsIterator, error) {
 	dbItr, err := sqe.VersionedDB.GetStateRangeScanIterator(ns, startKey, endKey)
 	if err != nil {

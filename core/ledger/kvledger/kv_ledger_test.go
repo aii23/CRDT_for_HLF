@@ -8,6 +8,8 @@ package kvledger
 
 import (
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -17,14 +19,18 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset"
 	"github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric/common/flogging"
+	"github.com/hyperledger/fabric/common/ledger/blkstorage"
 	"github.com/hyperledger/fabric/common/ledger/testutil"
 	"github.com/hyperledger/fabric/common/util"
 	"github.com/hyperledger/fabric/core/ledger"
+	"github.com/hyperledger/fabric/core/ledger/kvledger/history"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/txmgr"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/validation"
 	"github.com/hyperledger/fabric/core/ledger/mock"
 	"github.com/hyperledger/fabric/core/ledger/pvtdatapolicy"
 	btltestutil "github.com/hyperledger/fabric/core/ledger/pvtdatapolicy/testutil"
+	"github.com/hyperledger/fabric/core/ledger/pvtdatastorage"
 	"github.com/hyperledger/fabric/internal/pkg/txflags"
 	"github.com/hyperledger/fabric/protoutil"
 	"github.com/pkg/errors"
@@ -1526,4 +1532,62 @@ type bcSummary struct {
 	historyDBSavePoint uint64
 	historyKey         string
 	historyVals        []string
+}
+
+func Test_kvLedger_commit(t *testing.T) {
+	type fields struct {
+		ledgerID                  string
+		bootSnapshotMetadata      *SnapshotMetadata
+		blockStore                *blkstorage.BlockStore
+		pvtdataStore              *pvtdatastorage.Store
+		txmgr                     *txmgr.LockBasedTxMgr
+		historyDB                 *history.DB
+		configHistoryRetriever    *collectionConfigHistoryRetriever
+		snapshotMgr               *snapshotMgr
+		blockAPIsRWLock           *sync.RWMutex
+		stats                     *ledgerStats
+		commitHash                []byte
+		hashProvider              ledger.HashProvider
+		config                    *ledger.Config
+		isPvtstoreAheadOfBlkstore atomic.Value
+		commitNotifierLock        sync.Mutex
+		commitNotifier            *commitNotifier
+	}
+	type args struct {
+		pvtdataAndBlock *ledger.BlockAndPvtData
+		commitOpts      *ledger.CommitOptions
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := &kvLedger{
+				ledgerID:                  tt.fields.ledgerID,
+				bootSnapshotMetadata:      tt.fields.bootSnapshotMetadata,
+				blockStore:                tt.fields.blockStore,
+				pvtdataStore:              tt.fields.pvtdataStore,
+				txmgr:                     tt.fields.txmgr,
+				historyDB:                 tt.fields.historyDB,
+				configHistoryRetriever:    tt.fields.configHistoryRetriever,
+				snapshotMgr:               tt.fields.snapshotMgr,
+				blockAPIsRWLock:           tt.fields.blockAPIsRWLock,
+				stats:                     tt.fields.stats,
+				commitHash:                tt.fields.commitHash,
+				hashProvider:              tt.fields.hashProvider,
+				config:                    tt.fields.config,
+				isPvtstoreAheadOfBlkstore: tt.fields.isPvtstoreAheadOfBlkstore,
+				commitNotifierLock:        tt.fields.commitNotifierLock,
+				commitNotifier:            tt.fields.commitNotifier,
+			}
+			if err := l.commit(tt.args.pvtdataAndBlock, tt.args.commitOpts); (err != nil) != tt.wantErr {
+				t.Errorf("kvLedger.commit() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

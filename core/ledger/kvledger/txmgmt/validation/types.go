@@ -11,6 +11,7 @@ import (
 	"github.com/hyperledger/fabric/core/ledger/internal/version"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
+	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/statedb"
 )
 
 // block is used to used to hold the information from its proto format to a structure
@@ -109,4 +110,40 @@ func (u *publicAndHashUpdates) applyWriteSet(
 		}
 	}
 	return nil
+}
+
+func (u *publicAndHashUpdates) applyCRDT(
+	txRWSet *rwsetutil.TxRwSet,
+	txHeight *version.Height,
+	db *privacyenabledstate.DB,
+	containsPostOrderWrites bool,
+) error {
+	prevValues := make(map[string]*statedb.VersionedValue)
+
+	for _, nsRwSet := range txRWSet.NsRwSets {
+		ns := nsRwSet.NameSpace
+
+		for _, crdt := range nsRwSet.KvRwSet.CrdtPayload {
+			metadata := []byte("") // #TODO Shold be get some metadata?
+
+			curVV, err := u.publicUpdates.CRDTMerge(db.GetState, ns, crdt.Key, crdt.Data, crdt.ResolutionType, metadata, txHeight)
+
+			if _, exist := prevValues[crdt.Key]; !exist {
+				prevValues[crdt.Key] = curVV
+			}
+
+			if err != nil {
+				restoreUpdates(ns, prevValues, u.publicUpdates.UpdateBatch)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func restoreUpdates(ns string, prevValues map[string]*statedb.VersionedValue, batch *statedb.UpdateBatch) {
+	for key, value := range prevValues {
+		batch.Update(ns, key, value)
+	}
 }

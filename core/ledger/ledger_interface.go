@@ -228,6 +228,8 @@ type PeerLedger interface {
 type SimpleQueryExecutor interface {
 	// GetState gets the value for given namespace and key. For a chaincode, the namespace corresponds to the chaincodeId
 	GetState(namespace string, key string) ([]byte, error)
+
+	GetCRDTState(namespae string, key string) ([]byte, error)
 	// GetStateRangeScanIterator returns an iterator that contains all the key-values between given key ranges.
 	// startKey is included in the results and endKey is excluded. An empty startKey refers to the first available key
 	// and an empty endKey refers to the last available key. For scanning all the keys, both the startKey and the endKey
@@ -306,6 +308,9 @@ type TxSimulator interface {
 	QueryExecutor
 	// SetState sets the given value for the given namespace and key. For a chaincode, the namespace corresponds to the chaincodeId
 	SetState(namespace string, key string, value []byte) error
+	// Temp
+	SetCRDT(ns string, resType string, key string, value []byte) error
+
 	// DeleteState deletes the given namespace and key
 	DeleteState(namespace string, key string) error
 	// SetMultipleKeys sets the values for multiple keys in a single call

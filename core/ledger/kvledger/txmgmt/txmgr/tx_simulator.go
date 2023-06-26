@@ -43,6 +43,11 @@ func (s *txSimulator) SetState(ns string, key string, value []byte) error {
 	return s.checkStateMetadata(ns, key)
 }
 
+func (s *txSimulator) SetCRDT(ns string, resType string, key string, value []byte) error {
+	s.rwsetBuilder.AddToCRDT(ns, resType, key, value)
+	return nil
+}
+
 // If this key has a SBE policy, add that policy to the set
 func (s *txSimulator) checkStateMetadata(ns string, key string) error {
 	metabytes, err := s.txmgr.db.GetStateMetadata(ns, key)

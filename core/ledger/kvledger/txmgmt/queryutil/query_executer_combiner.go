@@ -51,6 +51,25 @@ func (c *QECombiner) GetState(namespace string, key string) ([]byte, error) {
 	return val, nil
 }
 
+func (c *QECombiner) GetCRDTState(namespace string, key string) ([]byte, error) {
+	var vv *statedb.VersionedValue
+	var val []byte
+	var err error
+	for _, qe := range c.QueryExecuters {
+		///??? Is it db query or not?????
+		if vv, err = qe.GetState(namespace, key); err != nil {
+			return nil, err
+		}
+		if vv != nil {
+			if !vv.IsDelete() {
+				val = vv.Value
+			}
+			break
+		}
+	}
+	return val, nil
+}
+
 // GetStateRangeScanIterator returns an iterator that can be used to iterate over the range between startKey(inclusive) and
 // endKey (exclusive). The results retuned are unioin of the results returned by the individual QueryExecuters in the global
 // sort order of the key
